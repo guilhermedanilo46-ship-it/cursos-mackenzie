@@ -264,6 +264,7 @@
             .hero-title { font-size: 2.5rem; }
         }
     </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -432,7 +433,7 @@
             <p class="mt-3 fw-bold">Gerando seu PIX exclusivo...</p>
         </div>
 
-        <img id="pix-qr" src="" class="img-fluid rounded border mb-3" style="display:none; max-width: 200px;">
+        <div id="pix-qr" style="display:none;margin:0 auto 16px;line-height:0;display:none;justify-content:center;"><div id="pix-qr-canvas"></div></div>
         
         <div id="btn-whatsapp-container" style="display:none">
             <div class="mb-3">
@@ -564,35 +565,48 @@
         $('#pix-loading').show();
         $('#pix-qr').hide();
         $('#btn-whatsapp-container').hide();
-        
-        fetch(VERCEL_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                valor: lead.curso.preco,
-                nome: lead.nome,
-                email: lead.email,
-                cpf: lead.cpf,
-                produto: lead.curso.nome
-            })
-        })
-        .then(response => response.json())
-        .then(res => {
-            if(res.status === 'sucesso') {
-                $('#pix-loading').hide();
-                $('#pix-qr').attr('src', res.qrcode_url).show();
-                $('#pix-code').val(res.pix_code);
+        $('#pix-qr-canvas').html('');
+
+        var cpfLimpo = (lead.cpf || '').replace(/[^0-9]/g, '');
+        var url = '/api/pix?acao=gerar_pix'
+            + '&valor=' + encodeURIComponent(lead.curso.preco)
+            + '&nome=' + encodeURIComponent(lead.nome)
+            + '&email=' + encodeURIComponent(lead.email)
+            + '&cpf=' + encodeURIComponent(cpfLimpo);
+
+        fetch(url)
+        .then(function(r){ return r.json(); })
+        .then(function(res){
+            $('#pix-loading').hide();
+            if(res.sucesso && res.copia_cola){
+                $('#pix-code').val(res.copia_cola);
                 $('#btn-whatsapp-container').show();
+                $('#pix-qr').css('display','flex');
+                setTimeout(function(){
+                    var div = document.getElementById('pix-qr-canvas');
+                    if(!div) return;
+                    div.innerHTML = '';
+                    if(typeof QRCode !== 'undefined'){
+                        try{
+                            new QRCode(div, {
+                                text: res.copia_cola,
+                                width: 200, height: 200,
+                                colorDark: '#000000',
+                                colorLight: '#ffffff',
+                                correctLevel: QRCode.CorrectLevel.M
+                            });
+                        } catch(e){ div.innerHTML = '<p style="color:#999;font-size:12px;">QR indisponível</p>'; }
+                    }
+                }, 200);
             } else {
-                alert('Erro ao gerar PIX. Tente novamente.');
+                alert('Erro ao gerar PIX: ' + (res.erro || 'Tente novamente.'));
                 closePix();
             }
         })
-        .catch(error => {
-            console.error('Erro:', error);
-            alert('Aguardando conexão com o servidor de pagamento...');
+        .catch(function(err){
+            console.error('Erro PIX:', err);
+            alert('Falha de conexão. Tente novamente.');
+            closePix();
         });
     }
 
@@ -604,10 +618,17 @@
     }
 
     function copyPix() {
-        const c = document.getElementById('pix-code');
-        c.select();
-        document.execCommand('copy');
-        alert('Código PIX copiado! Pague no seu banco e depois clique no botão do WhatsApp.');
+        var txt = document.getElementById('pix-code').value;
+        if(navigator.clipboard && txt){
+            navigator.clipboard.writeText(txt).then(function(){
+                alert('Código PIX copiado! Pague no seu banco e depois clique no botão do WhatsApp.');
+            }).catch(function(){
+                var c = document.getElementById('pix-code');
+                c.select(); c.setSelectionRange(0,99999);
+                document.execCommand('copy');
+                alert('Código PIX copiado!');
+            });
+        }
     }
 </script>
 
