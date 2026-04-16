@@ -462,8 +462,8 @@
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>
-    const VERCEL_API_URL = '/api/pix'; // URL do seu backend no Cloudflare/Vercel
-    const WHATSAPP_NUMBER = '5511999999999'; // Substitua pelo seu número
+    const VERCEL_API_URL = '/api/pix'; 
+    const WHATSAPP_NUMBER = '5511999999999'; 
 
     const AREAS = [
         { id: 1, nome: 'Tecnologia', icon: 'fas fa-code', desc: 'TI, Dados e Sistemas' },
@@ -574,9 +574,7 @@
         
         fetch(VERCEL_API_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 valor: lead.curso.preco,
                 nome: lead.nome,
@@ -587,13 +585,12 @@
         })
         .then(response => response.json())
         .then(res => {
-            // AJUSTE PARA O FORMATO DE RETORNO DO SEU BACKEND (MedusaPay)
+            // CORREÇÃO CIRÚRGICA PARA MEDUSAPAY
             if(res.sucesso) {
                 $('#pix-loading').hide();
                 
                 // 1. Processar QR Code (Imagem)
                 if (res.qr_code) {
-                    // Se for Base64, garante o prefixo data:image/png;base64,
                     let qrSrc = res.qr_code;
                     if (!qrSrc.startsWith('http') && !qrSrc.startsWith('data:')) {
                         qrSrc = 'data:image/png;base64,' + qrSrc;
