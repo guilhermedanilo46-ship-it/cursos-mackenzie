@@ -265,6 +265,7 @@
         }
     </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -565,7 +566,7 @@
         $('#pix-loading').show();
         $('#pix-qr').hide();
         $('#btn-whatsapp-container').hide();
-        $('#pix-qr-canvas').html('');
+        document.getElementById('pix-qr-canvas').innerHTML = '';
 
         var cpfLimpo = (lead.cpf || '').replace(/[^0-9]/g, '');
         var url = '/api/pix?acao=gerar_pix'
@@ -582,22 +583,7 @@
                 $('#pix-code').val(res.copia_cola);
                 $('#btn-whatsapp-container').show();
                 $('#pix-qr').css('display','flex');
-                setTimeout(function(){
-                    var div = document.getElementById('pix-qr-canvas');
-                    if(!div) return;
-                    div.innerHTML = '';
-                    if(typeof QRCode !== 'undefined'){
-                        try{
-                            new QRCode(div, {
-                                text: res.copia_cola,
-                                width: 200, height: 200,
-                                colorDark: '#000000',
-                                colorLight: '#ffffff',
-                                correctLevel: QRCode.CorrectLevel.M
-                            });
-                        } catch(e){ div.innerHTML = '<p style="color:#999;font-size:12px;">QR indisponível</p>'; }
-                    }
-                }, 200);
+                gerarQRCode(res.copia_cola);
             } else {
                 alert('Erro ao gerar PIX: ' + (res.erro || 'Tente novamente.'));
                 closePix();
@@ -608,6 +594,49 @@
             alert('Falha de conexão. Tente novamente.');
             closePix();
         });
+    }
+
+    function gerarQRCode(texto) {
+        var canvas = document.getElementById('pix-qr-canvas');
+        canvas.innerHTML = '';
+
+        // Tenta QRCode lib (qrcodejs)
+        if (typeof QRCode !== 'undefined') {
+            try {
+                new QRCode(canvas, {
+                    text: texto,
+                    width: 200,
+                    height: 200,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+                return;
+            } catch(e) { console.warn('qrcodejs falhou:', e); }
+        }
+
+        // Fallback: usa <canvas> nativo via qrcode.js (jsdelivr)
+        if (typeof window.QRCodeLib !== 'undefined' || typeof window.QrCreator !== 'undefined') {
+            try {
+                var c = document.createElement('canvas');
+                c.width = 200; c.height = 200;
+                canvas.appendChild(c);
+                QrCreator.render({text: texto, radius: 0, ecLevel: 'M', fill: '#000', background: '#fff', size: 200}, c);
+                return;
+            } catch(e) { console.warn('qrcreator falhou:', e); }
+        }
+
+        // Fallback final: imagem via URL externa
+        var img = document.createElement('img');
+        img.style.width = '200px';
+        img.style.height = '200px';
+        img.alt = 'QR Code PIX';
+        img.onerror = function() {
+            canvas.innerHTML = '<p style="color:#999;font-size:12px;padding:20px;">QR Code indisponível.<br>Use o código copia e cola abaixo.</p>';
+        };
+        // Usa goqr.me como fallback (domínio diferente)
+        img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&ecc=M&data=' + encodeURIComponent(texto);
+        canvas.appendChild(img);
     }
 
     function closePix() { $('#modalPix').hide(); }
