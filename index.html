@@ -393,7 +393,7 @@
                     <hr>
                     <div class="d-flex justify-content-between align-items-center">
                         <span class="fw-bold">TOTAL A PAGAR:</span>
-                        <span class="fs-3 fw-bold text-danger" id="resumo-total">-</span>
+                        <span class="fs-3 fw-bold text-danger" id="resumo-total">R$ 0,00</span>
                     </div>
                 </div>
 
@@ -574,7 +574,9 @@
         
         fetch(VERCEL_API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify({
                 valor: lead.curso.preco,
                 nome: lead.nome,
@@ -592,6 +594,7 @@
                 // 1. Processar QR Code (Imagem)
                 if (res.qr_code) {
                     let qrSrc = res.qr_code;
+                    // Garantir prefixo base64 se necessário
                     if (!qrSrc.startsWith('http') && !qrSrc.startsWith('data:')) {
                         qrSrc = 'data:image/png;base64,' + qrSrc;
                     }
