@@ -1,13 +1,27 @@
 {
-  "functions": {
-    "api/gerar.js": {
-      "runtime": "vercel-nodejs@20"
-    }
-  },
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/api/gerar",
-      "destination": "/api/gerar.js"
+      "src": "api/gerar.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "mackenzie_banner.png",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/gerar",
+      "dest": "api/gerar.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
     }
   ]
 }
