@@ -1,6 +1,7 @@
 const https = require('https' );
 
 module.exports = async (req, res) => {
+  // Configuração de cabeçalhos para o navegador aceitar a resposta
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -10,15 +11,8 @@ module.exports = async (req, res) => {
   const { valor, nome, email, cpf, produto } = req.body;
   const api_key = 'sk_live_66157972074358826626';
 
-  // Montando os dados exatamente como no seu PHP funcional
-  const postData = new URLSearchParams({
-    'api_key': api_key,
-    'valor': valor,
-    'nome': nome,
-    'email': email,
-    'cpf': cpf,
-    'descricao': produto
-  }).toString();
+  // Montando os dados exatamente como no seu PHP funcional (CURLOPT_POSTFIELDS)
+  const postData = `api_key=${api_key}&valor=${valor}&nome=${encodeURIComponent(nome)}&email=${encodeURIComponent(email)}&cpf=${cpf}&descricao=${encodeURIComponent(produto)}`;
 
   const options = {
     hostname: 'api.medusapay.com',
@@ -27,24 +21,25 @@ module.exports = async (req, res) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      'Content-Length': postData.length
+      'Content-Length': Buffer.byteLength(postData)
     }
   };
 
   const request = https.request(options, (response ) => {
-    let data = '';
-    response.on('data', (chunk) => { data += chunk; });
+    let body = '';
+    response.on('data', (chunk) => body += chunk);
     response.on('end', () => {
       try {
-        res.status(200).json(JSON.parse(data));
+        // Devolvemos exatamente o que a Medusa responder
+        res.status(200).send(body);
       } catch (e) {
-        res.status(500).json({ status: 'erro', msg: 'Resposta invalida da Medusa' });
+        res.status(500).json({ status: 'erro', msg: 'Erro ao processar resposta' });
       }
     });
   });
 
-  request.on('error', (error) => {
-    res.status(500).json({ status: 'erro', msg: error.message });
+  request.on('error', (e) => {
+    res.status(500).json({ status: 'erro', msg: e.message });
   });
 
   request.write(postData);
