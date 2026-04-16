@@ -10,27 +10,21 @@ module.exports = async (req, res) => {
   const { valor, nome, email, cpf, produto } = req.body;
   const api_key = 'sk_live_66157972074358826626';
 
-  // Montando os dados exatamente como o seu CURL do PHP faz
-  const params = new URLSearchParams();
-  params.append('api_key', api_key);
-  params.append('valor', valor);
-  params.append('nome', nome);
-  params.append('email', email);
-  params.append('cpf', cpf);
-  params.append('descricao', produto);
-
   try {
+    const params = new URLSearchParams();
+    params.append('api_key', api_key);
+    params.append('valor', valor);
+    params.append('nome', nome);
+    params.append('email', email);
+    params.append('cpf', cpf);
+    params.append('descricao', produto);
+
     const response = await axios.post('https://api.medusapay.com/v1/pix/gerar', params.toString( ), {
-      headers: { 
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      timeout: 15000
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
 
     return res.status(200).json(response.data);
   } catch (error) {
-    // Se der erro, vamos devolver o erro real da Medusa para saber o que é
-    const erroReal = error.response ? error.response.data : error.message;
-    return res.status(500).json({ status: 'erro', msg: 'Erro na MedusaPay', detalhe: erroReal });
+    return res.status(500).json({ status: 'erro', msg: 'Falha na conexao' });
   }
 };
