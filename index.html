@@ -454,9 +454,9 @@
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>
-    const WHATSAPP_NUMBER = '558391151608';
-    // NA VERCEL, A API FICA EM /api/gerar
-    const VERCEL_API_URL = '/gerar';
+        const WHATSAPP_NUMBER = '558391151608';
+    // AJUSTADO: Agora aponta para a sua função no Cloudflare
+    const API_URL = '/pix'; 
 
     const AREAS = [
         { id: 1, nome: 'Motorista Profissional', icon: 'fas fa-truck', desc: 'Logística, transporte e frotas.' },
@@ -533,7 +533,7 @@
         list.forEach(c => {
             html += `
                 <div class="course-item" onclick="selectCourse(this, ${c.id})">
-                    <img src="${c.img}" alt="${c.nome}" onerror="this.src='https://images.pexels.com/photos/256417/pexels-photo-256417.jpeg?auto=compress&cs=tinysrgb&w=400'">
+                    <img src="${c.img}" alt="${c.nome}">
                     <div class="course-info">
                         <span class="course-tag">${c.nivel}</span>
                         <div class="course-name">${c.nome}</div>
@@ -559,57 +559,58 @@
         goStep(4);
     });
 
+    // FUNÇÃO DE GERAR PIX CORRIGIDA PARA CLOUDFLARE
     function openPix() {
         $('#modalPix').css('display', 'flex');
         $('#pix-loading').show();
         $('#pix-qr').hide();
         $('#btn-whatsapp-container').hide();
         
-        fetch(VERCEL_API_URL, {
+        fetch(API_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 valor: lead.curso.preco,
                 nome: lead.nome,
                 email: lead.email,
-                cpf: lead.cpf,
-                produto: lead.curso.nome
+                cpf: lead.cpf
             })
         })
         .then(response => response.json())
-        .then(res => {
-            if(res.status === 'sucesso') {
+        .then(data => {
+            if (data.sucesso) {
                 $('#pix-loading').hide();
-                $('#pix-qr').attr('src', res.qrcode_url).show();
-                $('#pix-code').val(res.pix_code);
-                $('#btn-whatsapp-container').show();
+                // Ajustado para os nomes que definimos na função da Cloudflare
+                $('#pix-qr').attr('src', data.qr_code).show();
+                $('#pix-code').val(data.copia_cola);
+                $('#btn-whatsapp-container').fadeIn();
             } else {
-                alert('Erro ao gerar PIX. Tente novamente.');
+                alert("Erro ao gerar PIX: " + (data.erro || "Verifique os dados."));
                 closePix();
             }
         })
-        .catch(error => {
-            console.error('Erro:', error);
-            alert('Aguardando conexão com o servidor de pagamento...');
+        .catch(err => {
+            console.error(err);
+            alert("Erro de conexão com o servidor.");
+            closePix();
         });
+    }
+
+    function copyPix() {
+        const input = document.getElementById('pix-code');
+        input.select();
+        input.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(input.value);
+        alert("Código Pix copiado!");
     }
 
     function closePix() { $('#modalPix').hide(); }
 
     function enviarWhatsApp() {
-        const message = `✅ *COMPROVANTE DE PAGAMENTO MACKENZIE*%0A%0A*Nome:* ${lead.nome}%0A*CPF:* ${lead.cpf}%0A*Curso:* ${lead.curso.nome}%0A*Valor:* R$ ${lead.curso.preco.toFixed(2).replace('.', ',')}%0A%0A_Olá! Acabei de realizar o pagamento do curso. Segue o comprovante em anexo para agendarmos minha entrevista presencial e liberar meu acesso!_`;
-        window.open(`https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${message}`, '_blank');
-    }
-
-    function copyPix() {
-        const c = document.getElementById('pix-code');
-        c.select();
-        document.execCommand('copy');
-        alert('Código PIX copiado! Pague no seu banco e depois clique no botão do WhatsApp.');
+        const msg = encodeURIComponent(`Olá, realizei o pagamento do curso ${lead.curso.nome}. Segue o comprovante.`);
+        window.open(`https://wa.me{WHATSAPP_NUMBER}?text=${msg}`, '_blank');
     }
 </script>
-
 </body>
 </html>
+
